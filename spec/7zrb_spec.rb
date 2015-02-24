@@ -61,7 +61,7 @@ describe Ruby7z do
 
     it "returns true while creating a zip, false otherwise" do
       t = Thread.new { r7z.compress(target) }
-      sleep 0.1 # small sleep to allow compression to start
+      sleep 0.001 # small sleep to allow compression to start
       expect(r7z.in_progress?(target)).to eq true
       t.join
       expect(r7z.in_progress?(target)).to eq false
