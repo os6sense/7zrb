@@ -3,35 +3,35 @@ require_relative '../lib/7zrb'
 
 describe Ruby7z do
   # Brittle test - the test_files must exist
-  let(:test_files) { ["/home/leej/Downloads/7zt/hs2.mkv", "/home/leej/Downloads/7zt/hs2.mkv"] }
-  let(:test_file) { "/home/leej/Downloads/7zt/hs1.mkv" }
-  let(:target) { "/home/leej/RSTEST.zip" }
+  let(:test_files) { ["/home/leej/Downloads/7zt/FILE1.MP4", "/home/leej/Downloads/7zt/FILE2.MP4"] }
+  let(:test_file) { "/home/leej/Downloads/7zt/FILE1.MP4" }
+  let(:target) { "/home/leej/RSTEST.zip"}
   let(:r7z) { Ruby7z.new }
 
   describe :initialize do
     it "takes a stringlike filename" do
-      Ruby7z.new(test_file).should_not eq nil
+      expect(Ruby7z.new(test_file)).not_to eq nil
+     #expect{ Ruby7z.new(test_file).should_not eq nil
     end
 
     it "accepts zero parameters" do 
-      Ruby7z.new().should_not eq nil
+      expect(Ruby7z.new()).not_to eq nil
     end
 
     it "accepts an array of parameters" do 
-      Ruby7z.new(test_files).should_not eq nil
+      expect(Ruby7z.new(test_files)).not_to eq nil
     end
-
   end
 
   describe :add do
     it "accepts an array of filenames" do 
       r7z.add(test_files)
-      test_files.each { |f| r7z.filelist.include?(f).should eq true }
+      test_files.each { |f| expect(r7z.filelist.include?(f)).to eq true }
     end
 
     it "accepts a single filename" do
       r7z.add(test_file)
-      r7z.filelist.include?(test_file).should eq true 
+      expect(r7z.filelist.include?(test_file)).to eq true 
     end
   end
 
@@ -39,45 +39,54 @@ describe Ruby7z do
     before(:each) { r7z.add(test_files) }
 
     it "returns true on success" do
-      r7z.compress(target).should eq true
+      expect(r7z.compress(target)).to eq true
     end
 
     it "creates the target zip file" do
       r7z.compress(target)
-      File.exist?(target).should eq true
+      expect(File.exist?(target)).to eq true
     end
+
+    it "removes the zip from this list of in progress files" do
+      r7z.compress(target)
+      expect(Ruby7z.in_progress.include?(target)).to eq false
+    end
+
   end
 
+  # Note , this test is pretty fragile since a small file might have
+  # finished before the in_progress check
   describe :in_progress? do
     before(:each) { r7z.add(test_files) }
 
     it "returns true while creating a zip, false otherwise" do
       t = Thread.new { r7z.compress(target) }
-      sleep 0.5 # small sleep to allow compression to start
-      r7z.in_progress?(target).should eq true
+      sleep 0.1 # small sleep to allow compression to start
+      expect(r7z.in_progress?(target)).to eq true
       t.join
-      r7z.in_progress?(target).should eq false
+      expect(r7z.in_progress?(target)).to eq false
     end
   end
 
   describe :is_valid_archive? do
+    
     before(:all) do 
       r7z = Ruby7z.new
-      r7z.compress(target)
-      r7z.add(test_files) 
+      r7z.compress("/home/leej/RSTEST.zip")
+      r7z.add(["/home/leej/Downloads/7zt/FILE1.MP4", "/home/leej/Downloads/7zt/FILE2.MP4"]) 
     end
 
     it "returns true if the archive is valid" do
-      r7z.is_valid_archive?(target).should eq true
+      expect(r7z.is_valid_archive?(target)).to eq true
     end
 
     it "returns false if the archive does not exist" do
-      r7z.is_valid_archive?("/home/leej/this_does_not_exist.zip").should eq false
+      expect(r7z.is_valid_archive?("/home/leej/this_does_not_exist.zip")).to eq false
     end
 
     it "returns false if a file in the filelist does not exist" do
       r7z.add("blah.txt")
-      r7z.is_valid_archive?("/home/leej/this_does_not_exist.zip").should eq false
+      expect(r7z.is_valid_archive?("/home/leej/this_does_not_exist.zip")).to eq false
     end
   end
 end
